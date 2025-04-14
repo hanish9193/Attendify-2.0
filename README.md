@@ -30,7 +30,7 @@ Attendify is the **ULTIMATE** attendance calculator app created BY students FOR 
 ## 🌐 TRY IT ONLINE! 🌐
 
 You can check out Attendify 1.6 with partial features at:
-**[https://attendify-v1-6.web.app](https://attendify-v1-6.web.app)**
+**[Attendify 1.6](https://dazzling-dusk-3865b8.netlify.app/)**
 
 ⚠️ **IMPORTANT:** To experience all the awesome new features in 2.0 (including the 3D model, enhanced UI, calendar and focus mode), you must download the full application. The online version only includes basic functionality from 1.6!
 

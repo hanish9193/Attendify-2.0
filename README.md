@@ -23,7 +23,7 @@ Attendify is the **ULTIMATE** attendance calculator app created BY students FOR 
 <div align="center">
   
 <!-- Feature showcase image -->
-![Features Showcase](/api/placeholder/800/400)
+![Good Attendence](https://github.com/hanish9193/Attendify-2.0/blob/main/Screenshot%202025-04-14%20093131.png)
   
 </div>
 
@@ -55,7 +55,7 @@ You can check out Attendify 1.6 with partial features at:
 <div align="center">
   
 <!-- UI showcase image -->
-![UI Showcase](/api/placeholder/800/400)
+![Bad Attendence](https://github.com/hanish9193/Attendify-2.0/blob/main/Screenshot%202025-04-14%20093145.png)
   
 </div>
 
@@ -86,7 +86,7 @@ You can check out Attendify 1.6 with partial features at:
 <div align="center">
   
 <!-- Comparison image -->
-![Before and After](/api/placeholder/800/400)
+![Before and After](https://github.com/hanish9193/Attendify-2.0/blob/main/befafter.png)
   
 </div>
 
@@ -164,9 +164,7 @@ Get HYPED for what's coming in the FINAL version:
 ## 🤝 SUPPORT 🤝
 
 Ran into issues? We've got you:
-- 📧 Email: help@attendify.com
-- 💬 Discord: [Join our server](https://discord.gg/attendify)
-- 🐛 GitHub issues: [Report bugs here](https://github.com/yourusername/attendify/issues)
+- 📧 Email: hanish.kumarr9193@gmail.com
 
 ## 📜 LICENSE 📜
 
@@ -178,9 +176,9 @@ MIT License - Feel free to create your own attendance calculator, but we doubt i
   
 ### ARE YOU READY TO OPTIMIZE YOUR CLASS ATTENDANCE?
 
-[TRY ONLINE VERSION (1.6)](https://attendify-v1-6.web.app) | [DOWNLOAD FULL VERSION (2.0)](https://attendify.com/download) | [WATCH DEMO](https://attendify.com/demo)
+[TRY ONLINE VERSION (1.6)](https://dazzling-dusk-3865b8.netlify.app/)
 
-*Created with ❤️ by students who understand the importance of strategic bunking*
+*Created with ❤️ who understand the importance of strategic bunking*
 
 © 2025 Attendify Team | Because attendance calculations should be FUN!
   

@@ -3,7 +3,8 @@
 <div align="center">
   
 <!-- Animated GIF placeholder -->
-![Attendify Animated Logo](/api/placeholder/600/300)
+![Attendify Animated Logo](https://github.com/hanish9193/Attendify-2.0/blob/main/ScreenRecording2025-04-14093107-ezgif.com-video-to-gif-converter.gif)
+
   
 ### *Skip Classes Strategically - Your Ultimate Attendance Calculator*
 

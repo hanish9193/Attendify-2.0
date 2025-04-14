@@ -23,6 +23,7 @@ Attendify is the **ULTIMATE** attendance calculator app created BY students FOR 
 <div align="center">
   
 <!-- Feature showcase image -->
+GOOD Attendence UI
 ![Good Attendence](https://github.com/hanish9193/Attendify-2.0/blob/main/Screenshot%202025-04-14%20093131.png)
   
 </div>
@@ -55,6 +56,7 @@ You can check out Attendify 1.6 with partial features at:
 <div align="center">
   
 <!-- UI showcase image -->
+BAD Attendence UI
 ![Bad Attendence](https://github.com/hanish9193/Attendify-2.0/blob/main/Screenshot%202025-04-14%20093145.png)
   
 </div>

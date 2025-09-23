@@ -181,7 +181,6 @@ MIT License - Feel free to create your own attendance calculator, but we doubt i
 [TRY ONLINE VERSION (1.6)](https://dazzling-dusk-3865b8.netlify.app/)
 
 *Created with ❤️ who understand the importance of strategic bunking*
-
 © 2025 Attendify Team | Because attendance calculations should be FUN!
   
 </div>

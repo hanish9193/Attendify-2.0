@@ -1,0 +1,121 @@
+Attendify 2.0 – Full Feature Prompt (Keep UI & Integrate TrOCR)
+
+Goal: Upgrade Attendify to a fully-featured student attendance tracker while keeping the current 3D spline and dark glassmorphic UI intact. Mobile optimization will come later.
+
+Features to Implement
+
+Login Options
+
+Guest Login: Quick access without personal data.
+
+Google Login: Secure authentication via Google OAuth, store user info in the database.
+
+User Onboarding
+
+Semester end date.
+
+Number of subjects.
+
+Current absences for each subject.
+
+Target attendance percentage.
+
+Dashboard / Portfolio
+
+Maintain 3D spline and glassmorphic panels.
+
+Display all subjects with:
+
+Current attendance percentage
+
+Target attendance
+
+Number of classes that can be safely bunked
+
+Use small progress bars or indicators without changing the UI style.
+
+AI/Automation for Screenshots
+
+Students can upload a screenshot or photo of their academic portal.
+
+Use TrOCR to extract attendance data automatically and populate the dashboard.
+
+Allow students to update past absences or planned holidays.
+
+Recalculate bunkable classes automatically.
+
+Data Management
+
+Store attendance data securely in a database.
+
+Sync across devices for logged-in users.
+
+TrOCR Integration Guide
+
+Model: microsoft/trocr-base-handwritten (or trocr-large-handwritten for better accuracy)
+
+Installation:
+
+pip install transformers pillow torch
+
+
+Usage Example (OCR from Screenshot):
+
+from transformers import TrOCRProcessor, VisionEncoderDecoderModel
+from PIL import Image
+import requests
+
+# Load pre-trained processor and model
+processor = TrOCRProcessor.from_pretrained("microsoft/trocr-base-handwritten")
+model = VisionEncoderDecoderModel.from_pretrained("microsoft/trocr-base-handwritten")
+
+# Load screenshot image
+url = "URL_TO_SCREENSHOT"
+image = Image.open(requests.get(url, stream=True).raw).convert("RGB")
+
+# Prepare input and generate text
+pixel_values = processor(image, return_tensors="pt").pixel_values
+generated_ids = model.generate(pixel_values)
+generated_text = processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
+
+print(generated_text)
+
+
+Optional: Quantization for Large Models
+
+from transformers import BitsandBytesConfig
+
+quantization_config = BitsandBytesConfig(load_in_8bit=True)
+model = VisionEncoderDecoderModel.from_pretrained(
+    "microsoft/trocr-large-handwritten",
+    quantization_config=quantization_config
+)
+
+
+Integration Steps:
+
+Allow students to upload screenshots of their academic portal.
+
+Feed the image into TrOCR for text extraction.
+
+Parse extracted text to identify:
+
+Total classes
+
+Attended classes
+
+Subject names
+
+Update dashboard with current attendance, target attendance, and bunkable classes.
+
+Allow students to adjust for past absences and future holidays.
+
+Store data securely in your database.
+
+This prompt ensures:
+
+UI consistency (3D spline + glassmorphic effects remain).
+
+Advanced features (AI extraction, Google login, dashboard calculations).
+
+Future mobile readiness (can adapt the same UI later).

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import { useSession, signOut } from "next-auth/react"
 import {
   BarChart2,
   Calendar,
@@ -12,10 +13,17 @@ import {
   RefreshCw,
   Focus,
   PieChart,
+  LogOut,
+  User,
+  Calculator,
 } from "lucide-react"
 import Spline from "@splinetool/react-spline"
 import FocusView from "@/components/focus-view"
 import AttendanceChart from "@/components/attendance-chart"
+import AuthModal from "@/components/auth/auth-modal"
+import OnboardingModal from "@/components/onboarding/onboarding-modal"
+import MultiSubjectDashboard from "@/components/dashboard/multi-subject-dashboard"
+import ScreenshotUpload from "@/components/trocr/screenshot-upload"
 
 // Define CSS styles
 const globalStyles = `
@@ -88,7 +96,19 @@ const globalStyles = `
   }
 `
 
+interface Subject {
+  id: number
+  name: string
+  targetAttendance: number
+  totalClasses: number
+  attendedClasses: number
+  isActive: boolean
+}
+
 export default function App() {
+  // Temporarily remove session until SessionProvider is working
+  // const { data: session, status } = useSession()
+  
   // State management
   const [isLoading, setIsLoading] = useState(true)
   const [showContent, setShowContent] = useState(false)
@@ -110,10 +130,20 @@ export default function App() {
   const [showAttendanceChart, setShowAttendanceChart] = useState(false)
   const [attendanceHistory, setAttendanceHistory] = useState<{ date: string; status: "present" | "absent" }[]>([])
 
+  // Enhanced app states
+  const [showAuthModal, setShowAuthModal] = useState(false)
+  const [showOnboarding, setShowOnboarding] = useState(false)
+  const [showScreenshotUpload, setShowScreenshotUpload] = useState(false)
+  const [isGuestMode, setIsGuestMode] = useState(false)
+  const [isFirstTime, setIsFirstTime] = useState(true)
+  const [viewMode, setViewMode] = useState<"simple" | "dashboard">("simple")
+  const [subjects, setSubjects] = useState<Subject[]>([])
+  const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null)
+
   // 3D model interaction references
   const splineRef = useRef(null)
 
-  // Initialize app with loading animation
+  // Initialize app with loading animation and authentication
   useEffect(() => {
     setTimeout(() => {
       setIsLoading(false)
@@ -121,11 +151,24 @@ export default function App() {
 
     setTimeout(() => {
       setShowContent(true)
+      
+      // Check authentication and onboarding status
+      // Temporarily simplified initialization
+      if (!isGuestMode && isFirstTime) {
+        // Show auth modal for new users
+        setShowAuthModal(true)
+      } else if (isGuestMode && isFirstTime) {
+        // Show onboarding for guests
+        setShowOnboarding(true)
+      } else if (subjects.length > 0) {
+        // Show dashboard if user has subjects
+        setViewMode("dashboard")
+      }
     }, 2300)
 
     // Initialize with empty attendance history
     setAttendanceHistory([])
-  }, [])
+  }, [isGuestMode, isFirstTime, subjects.length])
 
   // Handle 3D model loading
   const onSplineLoad = (spline: any) => {
@@ -306,6 +349,87 @@ export default function App() {
     setShowAttendanceChart(false)
   }
 
+  // Enhanced app handlers
+  const handleGuestLogin = () => {
+    setIsGuestMode(true)
+    setShowAuthModal(false)
+    if (isFirstTime) {
+      setShowOnboarding(true)
+    }
+  }
+
+  const handleOnboardingComplete = (data: any) => {
+    const newSubjects: Subject[] = data.subjects.map((subject: any, index: number) => ({
+      id: index + 1,
+      name: subject.name,
+      targetAttendance: subject.targetAttendance,
+      totalClasses: subject.totalClasses,
+      attendedClasses: subject.attendedClasses,
+      isActive: true
+    }))
+    
+    setSubjects(newSubjects)
+    setShowOnboarding(false)
+    setIsFirstTime(false)
+    setViewMode("dashboard")
+  }
+
+  const handleAddSubject = () => {
+    const newSubject: Subject = {
+      id: subjects.length + 1,
+      name: `Subject ${subjects.length + 1}`,
+      targetAttendance: 75,
+      totalClasses: 0,
+      attendedClasses: 0,
+      isActive: true
+    }
+    setSubjects([...subjects, newSubject])
+  }
+
+  const handleEditSubject = (subject: Subject) => {
+    setSelectedSubject(subject)
+    // You could open an edit modal here
+  }
+
+  const handleScreenshotUpload = () => {
+    setShowScreenshotUpload(true)
+  }
+
+  const handleDataExtracted = (data: any) => {
+    const extractedSubjects: Subject[] = data.subjects.map((subject: any, index: number) => ({
+      id: subjects.length + index + 1,
+      name: subject.name,
+      targetAttendance: 75, // Default target
+      totalClasses: subject.totalClasses,
+      attendedClasses: subject.attendedClasses,
+      isActive: true
+    }))
+    
+    setSubjects([...subjects, ...extractedSubjects])
+    setShowScreenshotUpload(false)
+  }
+
+  const handleSignOut = () => {
+    // Temporarily simplified sign out
+    setIsGuestMode(false)
+    setViewMode("simple")
+    setSubjects([])
+    setShowAuthModal(true)
+  }
+
+  const switchToSimpleMode = () => {
+    setViewMode("simple")
+    setSelectedSubject(null)
+  }
+
+  const switchToDashboardMode = () => {
+    if (subjects.length === 0) {
+      setShowOnboarding(true)
+    } else {
+      setViewMode("dashboard")
+    }
+  }
+
   // Attendance improvement tips
   const tips = [
     "Set reminders 30 minutes before each class",
@@ -348,6 +472,28 @@ export default function App() {
             title="Reset"
           >
             <RefreshCw className="w-5 h-5 text-white" />
+          </button>
+          {(isGuestMode || subjects.length > 0) && (
+            <button
+              onClick={viewMode === "simple" ? switchToDashboardMode : switchToSimpleMode}
+              className="p-2 rounded-full bg-emerald-500 hover:bg-emerald-600 transition-all"
+              title={viewMode === "simple" ? "Switch to Dashboard" : "Switch to Simple Mode"}
+            >
+              {viewMode === "simple" ? <BarChart2 className="w-5 h-5 text-white" /> : <Calculator className="w-5 h-5 text-white" />}
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* User Controls */}
+      {showContent && !isLoading && (isGuestMode || subjects.length > 0) && (
+        <div className="fixed bottom-4 right-4 z-50">
+          <button
+            onClick={handleSignOut}
+            className="p-2 rounded-full bg-red-500/20 hover:bg-red-500/30 transition-all border border-red-500/30"
+            title={isGuestMode ? "Exit Guest Mode" : "Sign Out"}
+          >
+            <LogOut className="w-5 h-5 text-red-400" />
           </button>
         </div>
       )}
@@ -547,12 +693,26 @@ export default function App() {
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white tracking-wide">Attendify</h1>
           </div>
           <p className="text-white/60 text-center max-w-lg">
-            Calculate your attendance percentage, find out how many classes you can skip, or determine how many more you
-            need to attend to reach your target.
+            {viewMode === "dashboard" 
+              ? "Smart attendance tracking with AI-powered data extraction and multi-subject management."
+              : "Calculate your attendance percentage, find out how many classes you can skip, or determine how many more you need to attend to reach your target."
+            }
           </p>
         </div>
 
-        <div className="max-w-md mx-auto p-4 sm:p-6 relative">
+        {/* Dashboard Content */}
+        {viewMode === "dashboard" ? (
+          <div className="max-w-6xl mx-auto p-4 sm:p-6 relative">
+            <MultiSubjectDashboard
+              subjects={subjects}
+              onAddSubject={handleAddSubject}
+              onEditSubject={handleEditSubject}
+              onUploadScreenshot={handleScreenshotUpload}
+              splineObj={splineObj}
+            />
+          </div>
+        ) : (
+          <div className="max-w-md mx-auto p-4 sm:p-6 relative">
           {/* Attendance Tips */}
           {showTips && (
             <div
@@ -793,8 +953,28 @@ export default function App() {
           <div className="mt-6 text-center text-white/40 text-xs">
             <p>Attendify • Smart Attendance Calculator</p>
           </div>
-        </div>
+          </div>
+        )}
       </div>
+
+      {/* Enhanced Modals */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        onGuestLogin={handleGuestLogin}
+      />
+
+      <OnboardingModal
+        isOpen={showOnboarding}
+        onComplete={handleOnboardingComplete}
+        onClose={() => setShowOnboarding(false)}
+      />
+
+      <ScreenshotUpload
+        isOpen={showScreenshotUpload}
+        onClose={() => setShowScreenshotUpload(false)}
+        onDataExtracted={handleDataExtracted}
+      />
     </div>
   )
 }

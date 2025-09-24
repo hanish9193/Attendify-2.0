@@ -40,9 +40,25 @@ const nextConfig = {
             key: 'X-Frame-Options',
             value: 'ALLOWALL',
           },
+          {
+            key: 'Cache-Control',
+            value: 'no-cache, no-store, must-revalidate',
+          },
         ],
       },
     ];
+  },
+  // Allow all hosts for Replit proxy
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+      };
+    }
+    return config;
   },
 }
 

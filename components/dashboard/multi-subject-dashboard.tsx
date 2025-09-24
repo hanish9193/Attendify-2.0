@@ -180,19 +180,19 @@ export default function MultiSubjectDashboard({
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="glass-panel p-4 rounded-lg border border-white/10">
+          <div className="glass-panel p-4 rounded-lg bg-black/30">
             <div className="text-2xl font-bold text-emerald-400">{overallStats.overallPercentage}%</div>
             <div className="text-white/60 text-sm">Overall Attendance</div>
           </div>
-          <div className="glass-panel p-4 rounded-lg border border-white/10">
+          <div className="glass-panel p-4 rounded-lg bg-black/30">
             <div className="text-2xl font-bold text-white">{overallStats.totalAttended}/{overallStats.totalClasses}</div>
             <div className="text-white/60 text-sm">Classes Attended</div>
           </div>
-          <div className="glass-panel p-4 rounded-lg border border-white/10">
+          <div className="glass-panel p-4 rounded-lg bg-black/30">
             <div className="text-2xl font-bold text-emerald-400">{overallStats.subjectsOnTrack}</div>
             <div className="text-white/60 text-sm">On Track</div>
           </div>
-          <div className="glass-panel p-4 rounded-lg border border-white/10">
+          <div className="glass-panel p-4 rounded-lg bg-black/30">
             <div className="text-2xl font-bold text-red-400">{overallStats.subjectsAtRisk}</div>
             <div className="text-white/60 text-sm">At Risk</div>
           </div>
@@ -208,7 +208,7 @@ export default function MultiSubjectDashboard({
           return (
             <div 
               key={subject.id}
-              className="glass-panel rounded-xl p-4 border border-white/10 bg-white/5 backdrop-blur-lg hover:border-white/20 transition-all cursor-pointer"
+              className="glass-panel rounded-xl p-4 bg-black/20 backdrop-blur-lg hover:bg-black/30 transition-all cursor-pointer"
               onClick={() => onEditSubject(subject)}
             >
               <div className="flex items-center justify-between mb-3">
@@ -271,7 +271,7 @@ export default function MultiSubjectDashboard({
 
         {/* Add Subject Card */}
         <div 
-          className="glass-panel rounded-xl p-4 border border-white/20 border-dashed bg-white/5 backdrop-blur-lg hover:border-white/30 transition-all cursor-pointer flex flex-col items-center justify-center min-h-[200px]"
+          className="glass-panel rounded-xl p-4 border border-white/20 border-dashed bg-black/20 backdrop-blur-lg hover:bg-black/30 transition-all cursor-pointer flex flex-col items-center justify-center min-h-[200px]"
           onClick={onAddSubject}
         >
           <Plus className="w-8 h-8 text-white/60 mb-2" />

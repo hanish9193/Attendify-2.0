@@ -1,0 +1,386 @@
+Attendify 2.0 — Full Feature & Implementation Spec
+High-level goals
+
+Upgrade Attendify from a single-page attendance calculator into a full student attendance tracker.
+
+Preserve the current visual identity: 3D spline + dark glassmorphic panels.
+
+Add ability to ingest screenshots of academic portals using TrOCR, auto-extract attendance, and populate the dashboard.
+
+Provide Guest + Google OAuth login, sync for logged users, and secure persisted storage.
+
+Mobile optimization planned as a follow-up phase.
+
+Tech stack (suggested)
+
+Frontend: React (Vite or Next.js) + Tailwind CSS (glassmorphism + spline canvas), Typescript.
+
+Canvas/3D Spline: Three.js (or a prebuilt Lottie / 3D asset if required)
+
+State management: Zustand or React Context
+
+Backend: FastAPI (Python) or Node.js + Express (either is fine). I’ll give Python/FastAPI examples for TrOCR integration.
+
+DB: PostgreSQL (or Supabase for faster dev). Use Prisma or SQLAlchemy.
+
+Auth: Google OAuth2 (via Authlib for Python / next-auth for Next.js) + guest sessions (localStorage + optional DB record).
+
+OCR: transformers TrOCR models (microsoft/trocr-base-handwritten or trocr-large-handwritten)
+
+Storage: S3-compatible (AWS S3, DigitalOcean Spaces) for uploaded images
+
+Hosting / Deployment: Docker, Kubernetes or managed (Vercel for frontend + Render / Fly / Railway for backend), CPU/GPU considerations for OCR.
+
+Optional: Redis for job queue, background processing (RQ/Celery), if OCR is async.
+
+Phased Roadmap (priority / deliverables)
+
+Phase 1 (MVP) — core features, local storage, TrOCR sync basic
+
+Guest login
+
+Google login
+
+Add subjects, semester end date, current absences, target %
+
+Dashboard with per-subject progress, bunkable classes
+
+Upload screenshot -> run TrOCR synchronously (small images) -> populate form
+
+Store user data in DB for logged-in users
+
+Phase 2 — reliability & scaling
+
+Persistent image storage (S3), background OCR jobs (Celery/RQ)
+
+Sync across devices
+
+Export CSV/PDF
+
+Dark/Light modes, small UI refinements
+
+Phase 3 — advanced features
+
+Timetable import + calendar integration
+
+AI suggestions (which classes to prioritize)
+
+Gamification, social opt-in
+
+Mobile PWA + native wrappers
+
+UX / UI guidelines (musts)
+
+Keep 3D spline element visible, but non-blocking. Place it as background or top-left corner.
+
+All panels remain dark glassmorphic (blur + translucent surfaces).
+
+Use small progress bars/indicators embedded in glass cards — no major style changes.
+
+Provide a modal for screenshot upload & TrOCR preview where extracted text can be edited before saving.
+
+Keep flows simple: Add Subject → Upload (optional) → Auto-fill → Confirm.
+
+Data model (Postgres — simplified)
+users
+- id (uuid, pk)
+- email (nullable for guest)
+- name
+- google_id (nullable)
+- created_at, updated_at
+
+semesters
+- id
+- user_id (fk users.id)
+- name
+- start_date
+- end_date
+- target_percentage (default 75)
+- created_at, updated_at
+
+subjects
+- id
+- semester_id (fk semesters.id)
+- name
+- total_classes (int)   -- total planned lectures so far or expected
+- attended_classes (int)
+- weight (float) default 1.0   -- for weighted attendance if needed
+- created_at, updated_at
+
+attendance_events
+- id
+- subject_id (fk subjects.id)
+- date
+- status ENUM('attended','missed','holiday','adjusted')
+- note (text)
+- created_at
+
+uploads
+- id
+- user_id
+- semester_id (nullable)
+- filename
+- s3_url
+- ocr_text (text)
+- parsed (json)  -- e.g. {subject_name:..., total:..., attended:...}
+- status ENUM('uploaded','processed','failed')
+- created_at
+
+API design (examples)
+Auth
+
+POST /api/auth/guest → returns guest session token
+
+GET /api/auth/google/url → returns Google OAuth URL
+
+GET /api/auth/google/callback?code=... → exchange code → create/find user → return JWT
+
+User / Semester / Subjects
+
+POST /api/semesters — create semester
+
+GET /api/semesters — list
+
+GET /api/semesters/{id} — details with subjects
+
+POST /api/subjects — add subject
+
+PATCH /api/subjects/{id} — update counts
+
+POST /api/attendance_events — manually add an event (miss/attend/holiday)
+
+Upload / OCR
+
+POST /api/uploads — multipart upload image → returns upload id & processing status
+
+GET /api/uploads/{id} — get OCR text + parsed results
+
+POST /api/uploads/{id}/apply — apply parsed results to semester/subjects (after user confirms)
+
+TrOCR integration (server-side) — Python example (sync & simple)
+
+Requirements: pip install transformers pillow torch (and optionally bitsandbytes if using 8-bit quantization with GPUs that support it)
+
+# app/ocr_service.py
+from transformers import TrOCRProcessor, VisionEncoderDecoderModel
+from PIL import Image
+import io
+
+# load once at startup
+processor = TrOCRProcessor.from_pretrained("microsoft/trocr-base-handwritten")
+model = VisionEncoderDecoderModel.from_pretrained("microsoft/trocr-base-handwritten")
+
+def ocr_image_bytes(image_bytes: bytes) -> str:
+    image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+    pixel_values = processor(image, return_tensors="pt").pixel_values
+    generated_ids = model.generate(pixel_values, max_length=512)
+    generated_text = processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
+    return generated_text
+
+Optional quantized large model
+from transformers import BitsandBytesConfig, VisionEncoderDecoderModel, TrOCRProcessor
+quantization_config = BitsandBytesConfig(load_in_8bit=True)
+processor = TrOCRProcessor.from_pretrained("microsoft/trocr-large-handwritten")
+model = VisionEncoderDecoderModel.from_pretrained(
+    "microsoft/trocr-large-handwritten",
+    quantization_config=quantization_config
+)
+
+
+Note: quantization typically requires specialized hardware/driver support and may need accelerate. For CPU-only deployments, use trocr-base-handwritten or run the model on an inference GPU service.
+
+Parsing OCR results — heuristics
+
+OCR returns raw text; academic portals vary. Use robust parsing:
+
+Normalize text: lowercase, remove extra spaces, unify numerals (convert words → digits if needed).
+
+Use regex patterns to find lines with subject names + numbers:
+
+common patterns:
+
+Subject Name\s*[:\-]?\s*(\d+)\s*/\s*(\d+) — (attended/total)
+
+Total Classes\s*[:\-]?\s*(\d+)
+
+Attended\s*[:\-]?\s*(\d+)
+
+Present\s*[:\-]?\s*(\d+)\s*Absent\s*[:\-]?\s*(\d+)
+
+Name matching: fuzzy matching for subject names (use fuzzywuzzy / rapidfuzz) to map parsed subject names to user-entered subjects.
+
+Confidence scoring: return parsed items with confidence and allow user to confirm/edit before saving.
+
+Example parse function (very simplified):
+
+import re
+from rapidfuzz import process, fuzz
+
+def parse_ocr_text(ocr_text: str) -> dict:
+    lines = [l.strip() for l in ocr_text.splitlines() if l.strip()]
+    parsed = {"subjects": [], "total_classes": None, "attended": None}
+    for line in lines:
+        # example: "Maths - 20/25"
+        m = re.search(r'([A-Za-z &]+)[\s:-]*?(\d+)\s*/\s*(\d+)', line)
+        if m:
+            name, a, t = m.group(1).strip(), int(m.group(2)), int(m.group(3))
+            parsed["subjects"].append({"name": name, "attended": a, "total": t})
+        # total / attended global
+        m2 = re.search(r'total\s+classes[:\s\-]*?(\d+)', line, re.I)
+        if m2:
+            parsed["total_classes"] = int(m2.group(1))
+        m3 = re.search(r'attended[:\s\-]*?(\d+)', line, re.I)
+        if m3:
+            parsed["attended"] = int(m3.group(1))
+    return parsed
+
+Frontend flow for OCR upload
+
+User clicks Upload screenshot in a modal.
+
+On upload, frontend POSTs image to POST /api/uploads (multipart). Show spinner + keep UI usable.
+
+Backend stores image in S3, pushes OCR job (or runs sync for small jobs).
+
+Backend responds with parsed results; show them in a preview modal overlay on glassmorphic panel with:
+
+Original image (thumbnail)
+
+Extracted text (editable)
+
+Parsed table (Subject | Attended | Total) with checkboxes to confirm / map to existing subjects
+
+User confirms → POST /api/uploads/{id}/apply to commit to DB.
+
+Calculation logic (bunkable classes)
+
+For each subject:
+
+current_percentage = attended / total * 100 (if total == 0, treat percentage as unknown)
+
+How many you can skip now and still meet target:
+
+Let a = attended, t = total, target = P_target/100
+
+We want (a) / (t + x) >= target? Wait — bunking means missing future classes: if you skip x future classes, total number of classes becomes t + x and attended remains a; that reduces percentage. Usually bunkable classes is how many classes you can miss while still meeting target given future classes. Two interpretations: (A) future classes increase total but attended doesn't; (B) expected number of remaining classes is fixed. Provide both options.
+
+Simple conservative formula (max classes you can miss if every future class is missed): solve for x in a / (t + x) >= target:
+
+a >= target * (t + x) → x <= (a/target) - t
+
+bunkable = floor((a/target) - t) (if positive else 0)
+
+Also provide how many classes to attend consecutively to reach target if you start attending:
+
+Solve for y in (a + y)/(t + y) >= target:
+
+a + y >= target*(t + y) → y >= (target*t - a) / (1 - target)
+
+Display both numbers and explain assumptions in small tooltip.
+
+Security, privacy & compliance
+
+Minimal data collection for guests; default guest sessions do not store images or PII on server unless user opts to save.
+
+Encryption: Use HTTPS everywhere; encrypt image uploads at rest (S3) and in transit. Encrypt sensitive fields in DB if storing PII.
+
+User control: Users must manually confirm OCR parsed results before saving them to their account.
+
+Retention & deletion: Provide a clear privacy policy & a way to delete account + associated images.
+
+Rate limits: Limit uploads per minute to prevent abuse.
+
+GDPR/India privacy: If active users in EU/India, provide data deletion option and privacy policy.
+
+Deployment & infra notes
+
+OCR runtime: TrOCR base model can run on CPU for small volumes but slower. For reasonable latency, prefer a GPU instance (NVIDIA). If using serverless, consider offloading OCR to a managed ML inference endpoint (e.g., AWS SageMaker, Replicate, Hugging Face Inference).
+
+Background queue: Use Celery/RQ + Redis for heavy OCR jobs; acknowledge upload and process async. Send WebSocket/Push to frontend or poll status.
+
+Scaling: Autoscale worker pool, store processed outputs in DB.
+
+Costs: Using trocr-large-handwritten on GPU has significant cost — quantify infra cost before enabling large model.
+
+Example repository layout (suggested)
+/frontend (React + Tailwind)
+  /src
+    /components
+      DashboardCard.tsx
+      UploadModal.tsx
+      SplineCanvas.tsx
+    /pages
+      /dashboard
+/backend (FastAPI)
+  /app
+    main.py
+    ocr_service.py
+    models.py
+    routes/
+      auth.py
+      semesters.py
+      uploads.py
+  Dockerfile
+/scripts
+  deploy.sh
+
+Example end-to-end TrOCR flow (full code snippet)
+
+A minimal FastAPI endpoint that accepts an image and returns parsed JSON (sync; swap to background job as needed):
+
+# app/main.py
+from fastapi import FastAPI, File, UploadFile, HTTPException
+from ocr_service import ocr_image_bytes
+from parse_service import parse_ocr_text
+import aiofiles
+
+app = FastAPI()
+
+@app.post("/api/uploads")
+async def upload_image(file: UploadFile = File(...)):
+    content = await file.read()
+    # optionally save to S3 here & record DB entry
+    try:
+        text = ocr_image_bytes(content)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    parsed = parse_ocr_text(text)
+    return {"ocr_text": text, "parsed": parsed}
+
+Edge cases & testing
+
+Blurry or angled photos — add client-side guidelines: take screenshot / crop to portal area for best accuracy.
+
+Occluded numbers or images with watermarks — provide manual edit UI.
+
+Different portal formats — build pattern library for common college LMS (e.g., Moodle, ERPNext, college custom pages).
+
+Add unit tests for parse functions (varied sample OCR outputs).
+
+Deliverables checklist (for the first sprint)
+
+ Backend skeleton (auth, semesters, subjects endpoints)
+
+ Frontend skeleton (dashboard + glass cards + 3D spline component)
+
+ Upload modal + OCR preview editable UI
+
+ TrOCR base integration (sync, local dev)
+
+ Persistence for logged users + guest localStorage
+
+ Calculation: current %, bunkable, needed to reach target
+
+ Privacy & usage copy (modal disclaimers) and basic policy text
+
+Final notes & recommendations
+
+Start with microsoft/trocr-base-handwritten for cost/latency and tune parsing rules. Add trocr-large only if accuracy gains justify GPU costs.
+
+Use background processing for production OCR to avoid request timeouts and to scale gracefully.
+
+Ensure user confirmation step — never auto-commit OCR results without user review.
+
+Provide a small “How it works” walkthrough modal (glassmorphic) when user first uses OCR.
+
+Keep the current visual identity: a small, animated 3D spline background + glass cards. Avoid cluttering the UI when showing OCR details — use a modal or collapsible panel.

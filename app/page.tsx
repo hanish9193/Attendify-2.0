@@ -110,7 +110,7 @@ export default function App() {
   // const { data: session, status } = useSession()
   
   // State management
-  const [isLoading, setIsLoading] = useState(true)
+  const [show3DBackground, setShow3DBackground] = useState(true)
   const [showContent, setShowContent] = useState(false)
   const [totalClasses, setTotalClasses] = useState<number>(0)
   const [absences, setAbsences] = useState<number | null>(null)
@@ -143,32 +143,30 @@ export default function App() {
   // 3D model interaction references
   const splineRef = useRef(null)
 
-  // Initialize app with loading animation and authentication
+  // Initialize app with 2-second 3D background, then show login/dashboard
   useEffect(() => {
+    // Show 3D background for 2 seconds
     setTimeout(() => {
-      setIsLoading(false)
-    }, 2000)
-
-    setTimeout(() => {
+      setShow3DBackground(false)
       setShowContent(true)
       
-      // Check authentication and onboarding status
-      // Temporarily simplified initialization
-      if (!isGuestMode && isFirstTime) {
-        // Show auth modal for new users
+      // Check authentication and show appropriate screen
+      if (isGuestMode) {
+        // Guest mode - directly show dashboard (or onboarding if first time)
+        if (isFirstTime && subjects.length === 0) {
+          setShowOnboarding(true)
+        } else {
+          setViewMode("dashboard")
+        }
+      } else {
+        // Not logged in - show auth modal
         setShowAuthModal(true)
-      } else if (isGuestMode && isFirstTime) {
-        // Show onboarding for guests
-        setShowOnboarding(true)
-      } else if (subjects.length > 0) {
-        // Show dashboard if user has subjects
-        setViewMode("dashboard")
       }
-    }, 2300)
+    }, 2000)
 
     // Initialize with empty attendance history
     setAttendanceHistory([])
-  }, [isGuestMode, isFirstTime, subjects.length])
+  }, [])
 
   // Handle 3D model loading
   const onSplineLoad = (spline: any) => {
@@ -353,8 +351,11 @@ export default function App() {
   const handleGuestLogin = () => {
     setIsGuestMode(true)
     setShowAuthModal(false)
-    if (isFirstTime) {
+    // Directly show dashboard for guest mode
+    if (isFirstTime && subjects.length === 0) {
       setShowOnboarding(true)
+    } else {
+      setViewMode("dashboard")
     }
   }
 
@@ -457,7 +458,7 @@ export default function App() {
       <div className="absolute inset-0 z-1 bg-gradient-to-b from-transparent to-black/40" />
 
       {/* Interactive Element Controls */}
-      {showContent && !isLoading && (
+      {showContent && !show3DBackground && (
         <div className="fixed bottom-4 left-4 z-50 flex space-x-2">
           <button
             onClick={() => setShowSettings(!showSettings)}
@@ -486,7 +487,7 @@ export default function App() {
       )}
 
       {/* User Controls */}
-      {showContent && !isLoading && (isGuestMode || subjects.length > 0) && (
+      {showContent && !show3DBackground && (isGuestMode || subjects.length > 0) && (
         <div className="fixed bottom-4 right-4 z-50">
           <button
             onClick={handleSignOut}
@@ -499,7 +500,7 @@ export default function App() {
       )}
 
       {/* Watermark cover box - increased width and height */}
-      {showContent && !isLoading && <div className="fixed bottom-0 right-0 z-10 w-48 h-48 bg-black"></div>}
+      {showContent && !show3DBackground && <div className="fixed bottom-0 right-0 z-10 w-48 h-48 bg-black"></div>}
 
       {/* Settings Panel */}
       {showSettings && (
@@ -536,23 +537,15 @@ export default function App() {
         </div>
       )}
 
-      {/* Loading Screen */}
-      <div
-        className={`fixed inset-0 z-50 flex items-center justify-center bg-black/80 transition-opacity duration-500 ${isLoading ? "opacity-100" : "opacity-0 pointer-events-none"}`}
-      >
-        <div className="text-center px-4">
-          <div className="flex flex-col items-center justify-center space-y-4">
-            <div className="relative">
-              <BarChart2 className="w-16 h-16 text-white animate-pulse" />
-              <div className="absolute inset-0 flex items-center justify-center">
-                
-              </div>
-            </div>
-            <h1 className="text-3xl font-bold text-white tracking-wide">Attendify</h1>
-            <p className="text-white/60">Smart Attendance Calculator</p>
+      {/* 3D Background Display Only (No Loading Screen) */}
+      {show3DBackground && (
+        <div className="fixed inset-0 z-20 flex items-center justify-center">
+          <div className="text-center px-4">
+            <h1 className="text-4xl font-bold text-white tracking-wide mb-2">Attendify</h1>
+            <p className="text-white/60">Smart Attendance Tracker</p>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Modal Views with scrollable content */}
       {showCalendar && (

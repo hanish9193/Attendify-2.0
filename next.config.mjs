@@ -49,6 +49,7 @@ const nextConfig = {
     ];
   },
   // Allow all hosts for Replit proxy
+  allowedDevOrigins: ["*"],
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {

@@ -20,7 +20,7 @@ import {
 import Spline from "@splinetool/react-spline"
 import FocusView from "@/components/focus-view"
 import AttendanceChart from "@/components/attendance-chart"
-import AuthModal from "@/components/auth/auth-modal"
+import LoginPage from "@/app/login/page"
 import OnboardingModal from "@/components/onboarding/onboarding-modal"
 import MultiSubjectDashboard from "@/components/dashboard/multi-subject-dashboard"
 import ScreenshotUpload from "@/components/trocr/screenshot-upload"
@@ -131,7 +131,7 @@ export default function App() {
   const [attendanceHistory, setAttendanceHistory] = useState<{ date: string; status: "present" | "absent" }[]>([])
 
   // Enhanced app states
-  const [showAuthModal, setShowAuthModal] = useState(false)
+  const [showLoginPage, setShowLoginPage] = useState(false)
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [showScreenshotUpload, setShowScreenshotUpload] = useState(false)
   const [isGuestMode, setIsGuestMode] = useState(false)
@@ -152,15 +152,11 @@ export default function App() {
       
       // Check authentication and show appropriate screen
       if (isGuestMode) {
-        // Guest mode - directly show dashboard (or onboarding if first time)
-        if (isFirstTime && subjects.length === 0) {
-          setShowOnboarding(true)
-        } else {
-          setViewMode("dashboard")
-        }
+        // Guest mode - always show dashboard directly
+        setViewMode("dashboard")
       } else {
-        // Not logged in - show auth modal
-        setShowAuthModal(true)
+        // Not logged in - show login page
+        setShowLoginPage(true)
       }
     }, 2000)
 
@@ -350,13 +346,10 @@ export default function App() {
   // Enhanced app handlers
   const handleGuestLogin = () => {
     setIsGuestMode(true)
-    setShowAuthModal(false)
-    // Directly show dashboard for guest mode
-    if (isFirstTime && subjects.length === 0) {
-      setShowOnboarding(true)
-    } else {
-      setViewMode("dashboard")
-    }
+    setShowLoginPage(false)
+    setIsFirstTime(false)
+    // Guest mode always goes directly to dashboard
+    setViewMode("dashboard")
   }
 
   const handleOnboardingComplete = (data: any) => {
@@ -415,7 +408,14 @@ export default function App() {
     setIsGuestMode(false)
     setViewMode("simple")
     setSubjects([])
-    setShowAuthModal(true)
+    setShowLoginPage(true)
+    setShowContent(false)
+    // Show 3D background again before login
+    setShow3DBackground(true)
+    setTimeout(() => {
+      setShow3DBackground(false)
+      setShowContent(true)
+    }, 2000)
   }
 
   const switchToSimpleMode = () => {
@@ -439,6 +439,30 @@ export default function App() {
     "Use the 'can bunk' feature strategically for emergencies only",
     "Track your attendance weekly rather than waiting until the end of term",
   ]
+
+  // Show login page if needed
+  if (showLoginPage) {
+    return (
+      <div className="min-h-screen relative overflow-hidden bg-gradient-to-b from-gray-900 to-black">
+        {/* Add global styles correctly */}
+        <style dangerouslySetInnerHTML={{ __html: globalStyles }} />
+
+        {/* Interactive 3D Background */}
+        <div className="absolute inset-0 z-0 opacity-60">
+          <Spline
+            scene="https://prod.spline.design/27aB7rP4Ulb4gr8R/scene.splinecode"
+            onLoad={onSplineLoad}
+            ref={splineRef}
+          />
+        </div>
+
+        {/* Watermark cover */}
+        <div className="absolute inset-0 z-1 bg-gradient-to-b from-transparent to-black/40" />
+
+        <LoginPage onGuestLogin={handleGuestLogin} />
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-gradient-to-b from-gray-900 to-black">
@@ -537,15 +561,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 3D Background Display Only (No Loading Screen) */}
-      {show3DBackground && (
-        <div className="fixed inset-0 z-20 flex items-center justify-center">
-          <div className="text-center px-4">
-            <h1 className="text-4xl font-bold text-white tracking-wide mb-2">Attendify</h1>
-            <p className="text-white/60">Smart Attendance Tracker</p>
-          </div>
-        </div>
-      )}
+      {/* Pure 3D Background Display - No Text Overlay */}
 
       {/* Modal Views with scrollable content */}
       {showCalendar && (
@@ -951,12 +967,6 @@ export default function App() {
       </div>
 
       {/* Enhanced Modals */}
-      <AuthModal
-        isOpen={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
-        onGuestLogin={handleGuestLogin}
-      />
-
       <OnboardingModal
         isOpen={showOnboarding}
         onComplete={handleOnboardingComplete}
